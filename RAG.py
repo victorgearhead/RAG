@@ -92,8 +92,7 @@ def wikipedia(wikipedia_title):
     if wikipedia_content:
         store_document(wikipedia_title, wikipedia_content, 'Wikipedia')
 
-def pdf():
-    pdf_file_path = "Principles_of_Electronic_Materials_and_D.pdf"
+def pdf(pdf_file_path):
     pdf_content = run_with_timeout(extract_pdf_text, pdf_file_path, timeout=60)
     if pdf_content:
         store_document('PDF Document', pdf_content, 'PDF')
