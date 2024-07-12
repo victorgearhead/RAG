@@ -1,38 +1,89 @@
 // import logo from "./logo.svg";
 import "./App.css";
 import React, { useState } from "react";
-
-const pythonPrompt = () => {};
-const pythonConvHistory = () => {};
-const pythonConvDelete = () => {};
-const pythonReply = () => {};
-const pythonWiki = () => {};
-const pythonUploadPDF = () => {};
-const pythonSend = () => {};
-const pythonInbox = () => {};
-const pythonEmailData = () => {};
-const pythonEmailDelete = () => {};
+import axios from "axios";
 
 function App() {
+  const [userPrompt, setUserPrompt] = useState("");
+  const [question, setQuestion] = useState("");
+  const [response, setResponse] = useState("");
+  const [wikiTitle, setWikiTitle] = useState("");
+  const [pdfFilePath, setPdfFilePath] = useState("");
+
+  const handleGenerateAnswer = async () => {
+    try {
+      const res = await axios.post("http://localhost:3001/generate-answer", {
+        user_prompt: userPrompt,
+        question: question,
+      });
+      setResponse(res.data.response);
+    } catch (error) {
+      console.error(error);
+      setResponse("An error occurred while generating the answer.");
+    }
+  };
+
+  const handleEnterPrompt = () => {
+    setUserPrompt(prompt);
+  };
+
+  const handleWiki = async () => {
+    try {
+      const res = await axios.post("http://localhost:8000/search_wiki", {
+        wikipedia_title: wikiTitle,
+      });
+      console.log(res.data);
+      setResponse("Wikipedia data fetched and stored.");
+    } catch (error) {
+      console.error(error);
+      setResponse("An error occurred while fetching Wikipedia data.");
+    }
+  };
+
+  const handlePDF = async (e) => {
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append("pdf_file", file);
+    try {
+      const res = await axios.post(
+        "http://localhost:8000/search_pdf",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      console.log(res.data);
+      setResponse("PDF data fetched and stored.");
+    } catch (error) {
+      console.error(error);
+      setResponse("An error occurred while fetching PDF data.");
+    }
+  };
+
   return (
     <>
       <div className="container-fluid vh-100 d-flex bg-secondary justify-content-center align-items-center">
         <div className="row w-100 h-100">
-          {/* Left Card */}
           <div className="col-md-2 d-flex flex-column">
             <div className="card bg-black text-white h-100">
               <div className="card-body d-flex flex-column justify-content-between">
                 <div className="mb-4">
                   <p>Enter the prompt for Llama3 to respond as:</p>
-                  <label htmlFor="character">Give Prompt here:</label>
+                  <label htmlFor="userPrompt">Give Prompt here:</label>
                   <div className="input-group">
                     <input
                       type="text"
-                      id="character"
-                      name="character"
+                      id="userPrompt"
+                      value={userPrompt}
+                      onChange={(e) => setUserPrompt(e.target.value)}
                       className="form-control"
                     />
-                    <button className="btn btn-light" onClick={pythonPrompt}>
+                    <button
+                      className="btn btn-light"
+                      onClick={handleEnterPrompt}
+                    >
                       Enter
                     </button>
                   </div>
@@ -46,13 +97,13 @@ function App() {
                   <p>View and Delete History</p>
                   <button
                     className="btn btn-light w-100 mb-2"
-                    onClick={pythonConvHistory}
+                    // onClick={pythonConvHistory}
                   >
                     View History
                   </button>
                   <button
                     className="btn btn-light w-100"
-                    onClick={pythonConvDelete}
+                    // onClick={pythonConvDelete}
                   >
                     Delete History
                   </button>
@@ -60,104 +111,65 @@ function App() {
               </div>
             </div>
           </div>
-
-          {/* Center Card */}
           <div className="col-md-8 d-flex flex-column">
             <div className="card bg-black text-white h-100">
               <div className="card-body d-flex flex-column justify-content-between">
                 <div className="mb-4">
-                  <label htmlFor="chatbot-reply">Chatbot's Reply</label>
+                  <label htmlFor="response">Chatbot's Reply</label>
                   <textarea
-                    id="chatbot-reply"
-                    name="chatbot-reply"
+                    id="response"
+                    value={response}
                     className="form-control mb-4"
                     rows="25"
                     readOnly
                   ></textarea>
                 </div>
                 <div className="mb-4">
-                  <label htmlFor="input-sentence">Input Sentence</label>
+                  <label htmlFor="question">Input Question</label>
                   <div className="input-group">
                     <input
                       type="text"
-                      id="input-sentence"
-                      name="input-sentence"
+                      id="question"
+                      value={question}
+                      onChange={(e) => setQuestion(e.target.value)}
                       className="form-control"
                     />
-                    <button className="btn btn-light" onClick={pythonReply}>
+                    <button
+                      className="btn btn-light"
+                      onClick={handleGenerateAnswer}
+                    >
                       Send
                     </button>
                   </div>
                 </div>
-                <button
-                  className="btn btn-secondary w-100 mb-4"
-                  onClick={pythonWiki}
-                >
-                  Search Wikipidea
-                </button>
-                <button
-                  className="btn btn-secondary w-100"
-                  onClick={pythonUploadPDF}
-                >
-                  Upload PDF
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Card */}
-          <div className="col-md-2 d-flex flex-column">
-            <div className="card bg-black text-white h-100">
-              <div className="card-body d-flex flex-column justify-content-between">
-                <div className="mb-4">
-                  <label htmlFor="email">Email</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    className="form-control"
-                  />
-                  <label htmlFor="password" className="mt-2">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    className="form-control"
-                  />
-                  <label>To</label>
-                  <input type="text" className="form-control mb-2" />
-                  <label>Body</label>
-                  <input type="text" className="form-control" />
+                <div>
+                  <label htmlFor="wikipidea">About</label>
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      id="wikipideaTitle"
+                      value={wikiTitle}
+                      onChange={(e) => setWikiTitle(e.target.value)}
+                      className="form-control"
+                    />
+                    <button className="btn btn-light" onClick={handleWiki}>
+                      Search Wiki
+                    </button>
+                  </div>
                 </div>
-                <div className="d-flex justify-content-between mb-2">
-                  <button className="btn btn-light w-48" onClick={pythonSend}>
-                    Send Email
-                  </button>
-                  <button className="btn btn-light w-48" onClick={pythonInbox}>
-                    View Inbox
-                  </button>
-                </div>
-                <div className="text-center" style={{ paddingTop: "150px" }}>
-                  <p>
-                    Email are used to build RAG Databases to enchance the LLM to
-                    tune itself for better interaction with user. User can
-                    always delete these databases manually or here itself.
-                  </p>
-                  <p>View and Delete Datbases</p>
-                  <button
-                    className="btn btn-light w-100 mb-2"
-                    onClick={pythonEmailData}
-                  >
-                    View Email Data
-                  </button>
-                  <button
-                    className="btn btn-light w-100"
-                    onClick={pythonEmailDelete}
-                  >
-                    Delete Email Data
-                  </button>
+                <div>
+                  <label htmlFor="pdfFile">Upload PDF</label>
+                  <div className="input-group">
+                    <input
+                      type="file"
+                      id="pdfFile"
+                      onChange={handlePDF}
+                      className="form-control"
+                    />
+                    <button className="btn btn-light" onClick={handlePDF}>
+                      Upload PDF
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

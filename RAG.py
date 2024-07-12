@@ -9,8 +9,16 @@ import ascii_magic
 import concurrent.futures
 import time
 from sentence_transformers import SentenceTransformer
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+
+app = FastAPI()
 
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+
+class QueryRequest(BaseModel):
+    wikipedia_title: str
+    pdf_file_path: str
 
 def fetch_wikipedia_page(title):
     base_url = "https://en.wikipedia.org/wiki/"
@@ -92,13 +100,17 @@ def store_document(title, content, source):
     db.documents.insert_one(document)
     client.close()
 
-def wikipedia(wikipedia_title):
+@app.post("/search_wiki")
+def wikipedia(query:QueryRequest):
+    wikipedia_title = query.wikipedia_title
     wikipedia_content = fetch_wikipedia_page(wikipedia_title)
     print(wikipedia_content)
     if wikipedia_content:
         store_document(wikipedia_title, wikipedia_content, 'Wikipedia')
 
-def pdf(pdf_file_path):
+@app.post("/search_pdf")
+def pdf(query:QueryRequest):
+    pdf_file_path = query.pdf_file_path
     pdf_content = run_with_timeout(extract_pdf_text, pdf_file_path, timeout=60)
     if pdf_content:
         store_document('PDF Document', pdf_content, 'PDF')
