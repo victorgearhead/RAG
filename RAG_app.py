@@ -3,8 +3,14 @@ import datetime
 from RAG import pdf, extract_pdf_text, wikipedia, fetch_wikipedia_page, store_document
 from email_RAG import mail_view, fetch_emails, send_mail, send_email
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_community.llms import Ollama
+import transformers
+import torch
+from huggingface_hub import InferenceClient
 
+client = InferenceClient(
+    "meta-llama/Meta-Llama-3-8B-Instruct",
+    token="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",
+)
 
 def fetch_documents(query):
 
@@ -17,30 +23,26 @@ def fetch_documents(query):
 
     return docs
 
-def create_custom_prompt(character_name, documents):
+def create_custom_prompt(user_prompt, documents):
     
-    prompt = ChatPromptTemplate.from_messages([
-        ("system",f"You are {character_name}."), 
-        ("user", "{input}")])
+    prompt = f"{user_prompt}"
     
     if documents:
         temp=""
         for doc in documents:
             temp += f"Title: {doc['title']}\nContent: {doc['content']}\n\n"
     
-        prompt = ChatPromptTemplate.from_messages([
-            ("system",f"You are {character_name}. Return this to user {temp}"), 
-            ("user", "{input}")])
+        prompt =f"{user_prompt}, Return this to user {temp}"
 
     return prompt
 
-def save_conversation(character_name, user_input, model_response):
+def save_conversation(user_prompt, user_input, model_response):
     
     client = MongoClient('mongodb://localhost:27017/')
     db = client.rag_database
 
     conversation = {
-        "character_name": character_name,
+        "user_prompt": user_prompt,
         "user_input": user_input,
         "model_response": model_response,
         "timestamp": datetime.datetime.utcnow()
@@ -49,35 +51,41 @@ def save_conversation(character_name, user_input, model_response):
     
     client.close()
 
-def get_conversation_history(character_name, limit=10):
+def get_conversation_history(user_prompt, limit=10):
     
     client = MongoClient('mongodb://localhost:27017/')
     db = client.rag_database
 
-    history = list(db.conversations.find({"character_name": character_name}).sort("timestamp", -1).limit(limit))
+    history = list(db.conversations.find({"user_prompt": user_prompt}).sort("timestamp", -1).limit(limit))
     
     client.close()
     return history
 
-def generate_answer(character_name, question):
+def generate_answer(user_prompt, question):
 
-    llm = Ollama(model='llama3')
     documents = fetch_documents(question)
-    custom_prompt = create_custom_prompt(character_name, documents)
-    chain = custom_prompt | llm
-    response = chain.invoke({"input": f"{question}"})
-    save_conversation(character_name, question, response)
+    custom_prompt = create_custom_prompt(user_prompt, documents)
+    response = ""
+    for message in client.chat_completion(
+        messages=[{"role": "system", "content": f"{custom_prompt}"},
+                  {"role":"user", "content":f"{question}"}],
+        max_tokens=500,
+        stream=True,
+    ):
+        response += message.choices[0].delta.content
+    save_conversation(user_prompt, question, response)
     return response
 
-def start(character_name, question):
-    while True:
-        if question.lower() in ['exit', 'quit']:
-            break
-        response = generate_answer(character_name, question)
-        print(f"{response}")
-        break
+def start(user_prompt, question):
+    if question.lower() in ['exit', 'quit']:
+        return
+    response = generate_answer(user_prompt, question)
+    print(response)
 
-def get_history(character_name):
-    history = get_conversation_history(character_name)
+def get_history(user_prompt):
+    history = get_conversation_history(user_prompt)
     for entry in history:
-        print(f"{entry['timestamp']} - You: {entry['user_input']} | {character_name}: {entry['model_response']}")
+        print(f"{entry['timestamp']} - You: {entry['user_input']} | {user_prompt}: {entry['model_response']}")
+
+
+start('You talk like Captain Jack Sparrow', 'Tell me how would u like to travel across solar system.')
