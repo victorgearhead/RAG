@@ -2,7 +2,7 @@
 import "./App.css";
 import React, { useState } from "react";
 
-const pythonName = () => {};
+const pythonPrompt = () => {};
 const pythonConvHistory = () => {};
 const pythonConvDelete = () => {};
 const pythonReply = () => {};
@@ -23,11 +23,8 @@ function App() {
             <div className="card bg-black text-white h-100">
               <div className="card-body d-flex flex-column justify-content-between">
                 <div className="mb-4">
-                  <p>
-                    Enter the character in whose tone you would like LLM to
-                    respond in
-                  </p>
-                  <label htmlFor="character">Character Name:</label>
+                  <p>Enter the prompt for Llama3 to respond as:</p>
+                  <label htmlFor="character">Give Prompt here:</label>
                   <div className="input-group">
                     <input
                       type="text"
@@ -35,7 +32,7 @@ function App() {
                       name="character"
                       className="form-control"
                     />
-                    <button className="btn btn-light" onClick={pythonName}>
+                    <button className="btn btn-light" onClick={pythonPrompt}>
                       Enter
                     </button>
                   </div>

@@ -5,23 +5,36 @@ from email_RAG import mail_view, fetch_emails, send_mail, send_email
 from langchain_core.prompts import ChatPromptTemplate
 import transformers
 import torch
+import numpy as np
 from huggingface_hub import InferenceClient
+from sentence_transformers import SentenceTransformer
 
-client = InferenceClient(
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+
+llm = InferenceClient(
     "meta-llama/Meta-Llama-3-8B-Instruct",
-    token="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",
+    token="",
 )
 
 def fetch_documents(query):
-
     client = MongoClient('mongodb://localhost:27017/')
     db = client.rag_database
 
-    docs = list(db.documents.find({"content": {"$regex": query, "$options": "i"}}))
-    
-    client.close()
+    query_embedding = model.encode(query)
+    documents = db.documents.find()
 
-    return docs
+    similarities = []
+    for doc in documents:
+        if 'embedding' in doc:
+            doc_embedding = np.array(doc['embedding'])
+            similarity = np.dot(query_embedding, doc_embedding) / (np.linalg.norm(query_embedding) * np.linalg.norm(doc_embedding))
+            similarities.append((doc, similarity))
+    if similarities:
+        similarities.sort(key=lambda x: x[1], reverse=True)
+        top_documents = similarities[:10]
+        client.close()
+        return [doc[0] for doc in top_documents]
+    return
 
 def create_custom_prompt(user_prompt, documents):
     
@@ -66,7 +79,7 @@ def generate_answer(user_prompt, question):
     documents = fetch_documents(question)
     custom_prompt = create_custom_prompt(user_prompt, documents)
     response = ""
-    for message in client.chat_completion(
+    for message in llm.chat_completion(
         messages=[{"role": "system", "content": f"{custom_prompt}"},
                   {"role":"user", "content":f"{question}"}],
         max_tokens=500,
@@ -74,7 +87,7 @@ def generate_answer(user_prompt, question):
     ):
         response += message.choices[0].delta.content
     save_conversation(user_prompt, question, response)
-    return response
+    return custom_prompt
 
 def start(user_prompt, question):
     if question.lower() in ['exit', 'quit']:
@@ -88,4 +101,4 @@ def get_history(user_prompt):
         print(f"{entry['timestamp']} - You: {entry['user_input']} | {user_prompt}: {entry['model_response']}")
 
 
-start('You talk like Captain Jack Sparrow', 'Tell me how would u like to travel across solar system.')
+start('You talk like Captain Jack Sparrow', 'Talk to me about 3rd chapter from Atomic Habits book by James Clear')   

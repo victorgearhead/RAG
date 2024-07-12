@@ -8,6 +8,9 @@ from pypdf import PdfReader
 import ascii_magic
 import concurrent.futures
 import time
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
 def fetch_wikipedia_page(title):
     base_url = "https://en.wikipedia.org/wiki/"
@@ -77,11 +80,14 @@ def store_document(title, content, source):
     client = MongoClient('mongodb://localhost:27017/')
     db = client.rag_database
 
+    embedding = model.encode(content)
+
     document = {
         "title": title,
         "content": content,
         "source": source,
-        "date_added": datetime.datetime.utcnow()
+        "date_added": datetime.datetime.utcnow(),
+        "embedding": embedding.tolist()
     }
     db.documents.insert_one(document)
     client.close()
