@@ -1,6 +1,5 @@
 from pymongo import MongoClient
 import datetime
-from RAG import pdf, extract_pdf_text, wikipedia, fetch_wikipedia_page, store_document
 from langchain_core.prompts import ChatPromptTemplate
 import transformers
 import torch
@@ -22,15 +21,11 @@ app = FastAPI()
 
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
-llm = InferenceClient(
-    "meta-llama/Meta-Llama-3-8B-Instruct",
-    token="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",
-)
-
 class QueryRequest(BaseModel):
     user_prompt: str
     question: str
     wikipedia_title: str
+    token: str
 
 def fetch_documents(query):
     client = MongoClient('mongodb://localhost:27017/')
@@ -91,11 +86,12 @@ def get_conversation_history(user_prompt, limit=10):
     client.close()
     return history
 
-def generate_answer(user_prompt, question):
+def generate_answer(user_prompt, question, llm):
 
     documents = fetch_documents(question)
     custom_prompt = create_custom_prompt(user_prompt, documents)
     response = ""
+
     for message in llm.chat_completion(
         messages=[{"role": "system", "content": f"{custom_prompt}"},
                   {"role":"user", "content":f"{question}"}],
@@ -112,7 +108,11 @@ def start(query: QueryRequest):
     question = query.question
     if question.lower() in ['exit', 'quit']:
         return
-    response = generate_answer(user_prompt, question)
+    llm = InferenceClient(
+    "meta-llama/Meta-Llama-3-8B-Instruct",
+    token=query.token,
+    )
+    response = generate_answer(user_prompt, question, llm)
     return {response}
 
 def get_history(user_prompt):

@@ -5,14 +5,16 @@ import axios from "axios";
 
 function App() {
   const [userPrompt, setUserPrompt] = useState("");
+  const [userToken, setUserToken] = useState("");
   const [question, setQuestion] = useState("");
   const [response, setResponse] = useState("");
   const [wikiTitle, setWikiTitle] = useState("");
-  const [pdfFilePath, setPdfFilePath] = useState("");
+  // const [pdfFilePath, setPdfFilePath] = useState("");
 
   const handleGenerateAnswer = async () => {
     try {
       const res = await axios.post("http://localhost:3001/generate-answer", {
+        token: userToken,
         user_prompt: userPrompt,
         question: question,
       });
@@ -24,7 +26,11 @@ function App() {
   };
 
   const handleEnterPrompt = () => {
-    setUserPrompt(prompt);
+    setUserPrompt(userPrompt);
+  };
+
+  const handleEnterToken = () => {
+    setUserPrompt(userToken);
   };
 
   const handleWiki = async () => {
@@ -83,6 +89,30 @@ function App() {
                     <button
                       className="btn btn-light"
                       onClick={handleEnterPrompt}
+                    >
+                      Enter
+                    </button>
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <p>Enter your Hugging Face Token For Llama3:</p>
+                  <p>
+                    (Get your Token Here https://huggingface.co/settings/tokens
+                    and permission for Llama3 here
+                    https://huggingface.co/meta-llama/Meta-Llama-3-8B)
+                  </p>
+                  <label htmlFor="userToken">Enter Token Here:</label>
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      id="userToken"
+                      value={userToken}
+                      onChange={(e) => setUserToken(e.target.value)}
+                      className="form-control"
+                    />
+                    <button
+                      className="btn btn-light"
+                      onClick={handleEnterToken}
                     >
                       Enter
                     </button>
